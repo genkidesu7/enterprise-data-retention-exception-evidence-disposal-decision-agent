@@ -1,0 +1,36 @@
+# Agent Manifest — AgentRegistry entry point
+# AgentRegistry (mediator/registry/agent_registry.py) reads every key below at
+# ROOT level — do NOT nest keys under an `agent:` block. That nested shape is
+# invisible to the registry (falls back to defaults / KeyErrors).
+id: "CMN-C2-672"
+name: "Enterprise Data Retention Exception Evidence & Disposal Decision Agent"
+namespace: "cmn"
+version: "0.1.1"
+enabled: true
+category: "Cat 2"
+generation_mode: "deterministic"  # deterministic | llm
+industry: "CMN"
+
+# L1-direct base class (no Level 2 wrapper)
+base_type: "AgentBaseGraph"
+
+# Entry point — single dotted import path (module.Class), NOT split module:/class:.
+class: "src.graph.graph.RetentionExceptionDisposalAgent"
+
+# Security
+required_trust_level: "VERIFIED_EXTERNAL"
+
+# Compile-time gates (AgentRegistry._compile_and_cache) — declare every secret/extra
+# actually used, or the agent loads with those checks silently disabled.
+# DecisionBriefService is the only real (non-mock) call in this agent — it
+# synthesizes the approve/dispose recommendation via AzureOpenAIClient.
+# RetentionPolicyService and HoldRegistryService are permanently-mocked
+# boundaries (agenticstar-deploy skill hard rule #2) and need no secrets.
+requires:
+  secrets: ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"]
+  extras: ["openai"]  # AzureOpenAIClient — must exist in shared/utils/extras_map.py EXTRAS_MAP
+
+# generation_mode is deployment identity, not a tunable provider setting. Runtime
+# parameters (max_retry, timeout_s, hitl, memory_enabled, ...) live in
+# config/config.yaml — AgentRegistry loads that file separately and passes it
+# as Graph(config=...). Do NOT put them here.
